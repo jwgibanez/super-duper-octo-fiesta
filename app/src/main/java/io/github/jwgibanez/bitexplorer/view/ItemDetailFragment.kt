@@ -1,20 +1,22 @@
 package io.github.jwgibanez.bitexplorer.view
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.RecyclerView
-import io.github.jwgibanez.api.models.Repository
+import io.github.jwgibanez.api.models.*
 import io.github.jwgibanez.bitexplorer.databinding.FragmentItemDetailBinding
 import io.github.jwgibanez.bitexplorer.databinding.ItemListValuePairBinding
-import kotlin.reflect.full.declaredMemberProperties
+import io.github.jwgibanez.bitexplorer.utils.parse
 
-
-class ItemDetailFragment : Fragment() {
+open class ItemDetailFragment : Fragment() {
 
     private var item: Repository? = null
 
@@ -42,7 +44,7 @@ class ItemDetailFragment : Fragment() {
         _binding = FragmentItemDetailBinding.inflate(inflater, container, false)
         val rootView = binding.root
 
-        binding.toolbarLayout?.title = item?.name
+        item?.name?.let { binding.toolbarLayout?.title = it }
 
         return rootView
     }
@@ -57,11 +59,23 @@ class ItemDetailFragment : Fragment() {
         setupRecyclerView(binding.itemList!!, onItemClickListener)
     }
 
+    private fun setHtml(html: String) {
+        binding.fab?.apply {
+            setOnClickListener { open(html) }
+            visibility = VISIBLE
+        }
+    }
+
+    private fun setOwner(owner: String?) {
+        binding.toolbarLayout?.title = "${item?.name} by $owner"
+    }
+
     private fun setupRecyclerView(
         recyclerView: RecyclerView,
         onClickListener: View.OnClickListener
     ) {
         adapter = InfoItemRecyclerViewAdapter(
+            this,
             item,
             onClickListener
         )
@@ -74,6 +88,12 @@ class ItemDetailFragment : Fragment() {
         )
     }
 
+    private fun open(url: String) {
+        CustomTabsIntent.Builder()
+            .build()
+            .launchUrl(requireContext(), Uri.parse(url))
+    }
+
     companion object {
         const val ARG_ITEM = "item"
     }
@@ -84,18 +104,15 @@ class ItemDetailFragment : Fragment() {
     }
 
     class InfoItemRecyclerViewAdapter(
-        private val repository: Repository?,
+        private val fragment: ItemDetailFragment?,
+        repository: Repository?,
         private val onClickListener: View.OnClickListener,
     ) : RecyclerView.Adapter<InfoItemRecyclerViewAdapter.ItemViewHolder>() {
 
         private val values = ArrayList<ValuePair>()
 
         init {
-            repository?.apply {
-                for (prop in Repository::class.declaredMemberProperties) {
-                    values.add(ValuePair(prop.name, prop.get(repository)))
-                }
-            }
+            parse(values, repository)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
@@ -114,10 +131,31 @@ class ItemDetailFragment : Fragment() {
 
             holder.name.text = item.name
 
+            var s: Any?
             when (item.value) {
                 is String -> {
-                    val s = item.value as String
+                    s = item.value as String
                     holder.value.text = if (s.isNotEmpty()) s else "n/a"
+                    if (item.name.equals("owner.display_name")) {
+                        fragment?.setOwner(item.value as String)
+                    }
+                }
+                is Boolean -> {
+                    s = item.value as Boolean
+                    holder.value.text = s.toString()
+                }
+                is Long -> {
+                    s = item.value as Long
+                    holder.value.text = s.toString()
+                }
+                is Link -> {
+                    s = item.value as Link
+                    holder.value.text = s.href
+                    if (item.name.equals("links.html")) {
+                        s.href?.let { fragment?.setHtml(it) }
+                    } else if (item.name.equals("owner.links.avatar")) {
+                        s.href?.let { fragment?.setHtml(it) }
+                    }
                 }
                 else -> holder.value.text = "n/a"
             }
