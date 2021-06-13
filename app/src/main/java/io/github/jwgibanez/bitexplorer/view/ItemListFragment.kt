@@ -11,6 +11,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.findNavController
+import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.RecyclerView
 import io.github.jwgibanez.api.models.Repository
 import io.github.jwgibanez.bitexplorer.R
@@ -72,7 +73,7 @@ class ItemListFragment : Fragment() {
         }
 
         val onNextClickListener = View.OnClickListener { itemView ->
-            val button = itemView.findViewById<Button>(R.id.button)
+            val button = itemView.findViewById<TextView>(R.id.button)
             button.text = getString(R.string.loading)
             viewModel.fetchNext()
         }
@@ -90,6 +91,12 @@ class ItemListFragment : Fragment() {
             onNextClickListener
         )
         recyclerView.adapter = adapter
+        recyclerView.addItemDecoration(
+            DividerItemDecoration(
+                recyclerView.context,
+                DividerItemDecoration.VERTICAL
+            )
+        )
     }
 
     class SimpleItemRecyclerViewAdapter(
@@ -139,7 +146,11 @@ class ItemListFragment : Fragment() {
                     setOnClickListener(onClickListener)
                 }
             } else if (holder is ButtonViewHolder) {
-                if (next.isNullOrEmpty()) {
+                if (values.isEmpty()) {
+                    holder.itemView.visibility = VISIBLE
+                    holder.button.text = holder.button.context.getString(R.string.loading)
+                    holder.button.setOnClickListener(null)
+                } else if (next.isNullOrEmpty()) {
                     holder.itemView.visibility = GONE
                     holder.itemView.setOnClickListener(null)
                 } else {
@@ -160,7 +171,7 @@ class ItemListFragment : Fragment() {
 
         inner class ButtonViewHolder(binding: ItemListButtonBinding) :
             RecyclerView.ViewHolder(binding.root) {
-            val button: Button = binding.button
+            val button: TextView = binding.button
         }
 
         fun setNext(next: String?) {
