@@ -26,3 +26,8 @@ https://api.bitbucket.org/2.0/repositories
 ```
 $ ./gradlew test
 ```
+
+## Screenshots
+
+<img src="https://github.com/jwgibanez/super-duper-octo-fiesta/blob/main/screenshots/Screenshot_20210613-144959.png" alt="Screenshot A" width="250"/>
+<img src="https://github.com/jwgibanez/super-duper-octo-fiesta/blob/main/screenshots/Screenshot_20210613-145012.png" alt="Screenshot B" width="250"/>
