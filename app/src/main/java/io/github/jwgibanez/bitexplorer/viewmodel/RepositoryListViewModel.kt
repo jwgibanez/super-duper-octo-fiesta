@@ -24,7 +24,6 @@ class RepositoryListViewModel : ViewModel() {
                 bitbucketService.getRepositories().subscribe {
                     next.postValue(it.next)
                     repositories += it.values
-                    //response.postValue(it)
                 }
             }
         }

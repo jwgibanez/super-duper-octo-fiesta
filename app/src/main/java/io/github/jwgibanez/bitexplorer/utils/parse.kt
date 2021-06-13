@@ -1,13 +1,17 @@
 package io.github.jwgibanez.bitexplorer.utils
 
+import androidx.lifecycle.MutableLiveData
 import io.github.jwgibanez.api.models.*
 import io.github.jwgibanez.bitexplorer.view.ItemDetailFragment
 import kotlin.reflect.full.declaredMemberProperties
 
 fun parse(
-    values: ArrayList<ItemDetailFragment.InfoItemRecyclerViewAdapter.ValuePair>,
-    repository: Repository?) {
+    liveData: MutableLiveData<ArrayList<ItemDetailFragment.InfoItemRecyclerViewAdapter.ValuePair>>,
+    repository: Repository?
+) {
     repository?.apply {
+        val values = ArrayList<ItemDetailFragment.InfoItemRecyclerViewAdapter.ValuePair>()
+
         for (prop in Repository::class.declaredMemberProperties) {
             when (val member = prop.get(repository)) {
                 is Project -> {
@@ -67,6 +71,8 @@ fun parse(
                 }
             }
         }
+
+        liveData.postValue(values)
     }
 }
 

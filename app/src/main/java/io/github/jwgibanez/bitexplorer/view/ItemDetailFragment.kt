@@ -9,17 +9,17 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.RecyclerView
 import com.squareup.picasso.Picasso
 import io.github.jwgibanez.api.models.*
 import io.github.jwgibanez.bitexplorer.databinding.FragmentItemDetailBinding
 import io.github.jwgibanez.bitexplorer.databinding.ItemListValuePairBinding
-import io.github.jwgibanez.bitexplorer.utils.parse
+import io.github.jwgibanez.bitexplorer.viewmodel.RepositoryViewModel
+import io.github.jwgibanez.bitexplorer.viewmodel.RepositoryViewModelFactory
 
 open class ItemDetailFragment : Fragment() {
-
-    private var item: Repository? = null
 
     private var _binding: FragmentItemDetailBinding? = null
 
@@ -27,12 +27,14 @@ open class ItemDetailFragment : Fragment() {
 
     private var adapter: InfoItemRecyclerViewAdapter? = null
 
+    private val viewModel: RepositoryViewModel by viewModels { RepositoryViewModelFactory() }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         arguments?.let {
             if (it.containsKey(ARG_ITEM)) {
-                item = it.getSerializable(ARG_ITEM) as Repository
+                viewModel.setRepository(it.getSerializable(ARG_ITEM) as Repository)
             }
         }
     }
@@ -45,7 +47,32 @@ open class ItemDetailFragment : Fragment() {
         _binding = FragmentItemDetailBinding.inflate(inflater, container, false)
         val rootView = binding.root
 
-        item?.name?.let { binding.toolbarLayout?.title = it }
+        viewModel.apply {
+            repositoryName.observe(viewLifecycleOwner) { name ->
+                name?.let { binding.toolbarLayout?.title = it }
+            }
+            repositoryOwner.observe(viewLifecycleOwner) { owner ->
+                owner?.let { binding.toolbarLayout?.title = "${repositoryName.value} by $it" }
+            }
+            repositoryOwnerAvatar.observe(viewLifecycleOwner) { url ->
+                url?.let {
+                    binding.avatar?.let {
+                        Picasso.get().load(url).into(it)
+                    }
+                }
+            }
+            repositoryHtml.observe(viewLifecycleOwner) { html ->
+                html?.let {
+                    binding.fab?.apply {
+                        setOnClickListener { open(html) }
+                        visibility = VISIBLE
+                    }
+                }
+            }
+            repositoryValues.observe(viewLifecycleOwner) { repository ->
+                adapter?.set(repository)
+            }
+        }
 
         return rootView
     }
@@ -53,28 +80,11 @@ open class ItemDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val onItemClickListener = View.OnClickListener { itemView ->
+        val onItemClickListener = View.OnClickListener {
             // todo
         }
 
         setupRecyclerView(binding.itemList!!, onItemClickListener)
-    }
-
-    private fun setHtml(html: String) {
-        binding.fab?.apply {
-            setOnClickListener { open(html) }
-            visibility = VISIBLE
-        }
-    }
-
-    private fun setAvatar(url: String) {
-        binding.avatar?.let {
-            Picasso.get().load(url).into(it)
-        }
-    }
-
-    private fun setOwner(owner: String?) {
-        binding.toolbarLayout?.title = "${item?.name} by $owner"
     }
 
     private fun setupRecyclerView(
@@ -82,8 +92,7 @@ open class ItemDetailFragment : Fragment() {
         onClickListener: View.OnClickListener
     ) {
         adapter = InfoItemRecyclerViewAdapter(
-            this,
-            item,
+            viewModel,
             onClickListener
         )
         recyclerView.adapter = adapter
@@ -111,16 +120,11 @@ open class ItemDetailFragment : Fragment() {
     }
 
     class InfoItemRecyclerViewAdapter(
-        private val fragment: ItemDetailFragment?,
-        repository: Repository?,
+        private val viewModel: RepositoryViewModel,
         private val onClickListener: View.OnClickListener,
     ) : RecyclerView.Adapter<InfoItemRecyclerViewAdapter.ItemViewHolder>() {
 
         private val values = ArrayList<ValuePair>()
-
-        init {
-            parse(values, repository)
-        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ItemViewHolder {
             val inflater = LayoutInflater.from(parent.context)
@@ -144,7 +148,7 @@ open class ItemDetailFragment : Fragment() {
                     s = item.value as String
                     holder.value.text = if (s.isNotEmpty()) s else "n/a"
                     if (item.name.equals("owner.display_name")) {
-                        fragment?.setOwner(item.value as String)
+                        viewModel.repositoryOwner.value = item.value as String
                     }
                 }
                 is Boolean -> {
@@ -159,9 +163,9 @@ open class ItemDetailFragment : Fragment() {
                     s = item.value as Link
                     holder.value.text = s.href
                     if (item.name.equals("links.html")) {
-                        s.href?.let { fragment?.setHtml(it) }
+                        s.href?.let { viewModel.repositoryHtml.value = it }
                     } else if (item.name.equals("owner.links.avatar")) {
-                        s.href?.let { fragment?.setAvatar(it) }
+                        s.href?.let { viewModel.repositoryOwnerAvatar.value = it }
                     }
                 }
                 else -> holder.value.text = "n/a"
@@ -170,6 +174,14 @@ open class ItemDetailFragment : Fragment() {
             with(holder.itemView) {
                 tag = item
                 setOnClickListener(onClickListener)
+            }
+        }
+
+        fun set(newValues: ArrayList<ValuePair>) {
+            values.apply {
+                clear()
+                addAll(newValues)
+                notifyDataSetChanged()
             }
         }
 
