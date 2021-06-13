@@ -11,6 +11,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.RecyclerView
+import com.squareup.picasso.Picasso
 import io.github.jwgibanez.api.models.*
 import io.github.jwgibanez.bitexplorer.databinding.FragmentItemDetailBinding
 import io.github.jwgibanez.bitexplorer.databinding.ItemListValuePairBinding
@@ -63,6 +64,12 @@ open class ItemDetailFragment : Fragment() {
         binding.fab?.apply {
             setOnClickListener { open(html) }
             visibility = VISIBLE
+        }
+    }
+
+    private fun setAvatar(url: String) {
+        binding.avatar?.let {
+            Picasso.get().load(url).into(it)
         }
     }
 
@@ -131,7 +138,7 @@ open class ItemDetailFragment : Fragment() {
 
             holder.name.text = item.name
 
-            var s: Any?
+            val s: Any?
             when (item.value) {
                 is String -> {
                     s = item.value as String
@@ -154,7 +161,7 @@ open class ItemDetailFragment : Fragment() {
                     if (item.name.equals("links.html")) {
                         s.href?.let { fragment?.setHtml(it) }
                     } else if (item.name.equals("owner.links.avatar")) {
-                        s.href?.let { fragment?.setHtml(it) }
+                        s.href?.let { fragment?.setAvatar(it) }
                     }
                 }
                 else -> holder.value.text = "n/a"
