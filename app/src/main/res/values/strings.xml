@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">BitExplorer</string>
+    <string name="public_repositories">Bitbucket Public Repositories</string>
+    <string name="repo_info">Repository Information</string>
+    <string name="title_item_detail">Item Detail</string>
+    <string name="next">NEXT</string>
+    <string name="loading">LOADING…</string>
+</resources>
